@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Swarm Control</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+body { margin:0; background:black; font-family:Arial; overflow:hidden; }
+#map { height:100vh; width:100vw; }
+
+.panel {
+    position:absolute;
+    top:20px; left:20px;
+    background:rgba(0,0,0,0.7);
+    border:1px solid #00f3ff;
+    padding:15px;
+    z-index:1000;
+}
+
+.panel button {
+    width:160px;
+    margin-bottom:8px;
+    padding:8px;
+    background:black;
+    color:#00f3ff;
+    border:1px solid #00f3ff;
+    cursor:pointer;
+}
+
+.panel button:hover {
+    background:#00f3ff;
+    color:black;
+}
+</style>
+</head>
+
+<body>
+
+<div class="panel">
+    <button onclick="send('triangle')">Triangle</button>
+    <button onclick="send('line')">Line</button>
+    <button onclick="send('steps')">Steps</button>
+    <button onclick="send('rtl')">RTL</button>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+let map = L.map('map', {zoomControl:false}).setView([0,0], 18);
+
+L.tileLayer(
+    'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    {maxZoom:20}
+).addTo(map);
+
+let markers = {};
+let trails = {};
+let links = [];
+let centered = false;
+
+// -------- DRONE ICON WITH ID --------
+function droneIcon(id){
+    return L.divIcon({
+        className: '',
+        html: `
+        <div style="
+            width:16px;height:16px;
+            background:#0aff00;
+            border-radius:50%;
+            border:2px solid white;
+            box-shadow:0 0 10px #0aff00;
+            text-align:center;
+            line-height:16px;
+            font-size:10px;
+            font-weight:bold;
+            color:black;">
+            ${id}
+        </div>`,
+        iconSize:[16,16],
+        iconAnchor:[8,8]
+    });
+}
+
+// -------- UPDATE LOOP --------
+function update(){
+    fetch('/data').then(r=>r.json()).then(d=>{
+
+        // remove old links
+        links.forEach(l=>map.removeLayer(l));
+        links = [];
+
+        Object.values(d).forEach(a => {
+
+            if(!markers[a.id]){
+                markers[a.id] = L.marker(
+                    [a.lat, a.lon],
+                    {icon: droneIcon(a.id)}
+                ).addTo(map);
+
+                trails[a.id] = L.polyline([], {
+                    color:'#0aff00',
+                    weight:2,
+                    opacity:0.6
+                }).addTo(map);
+            }
+
+            markers[a.id].setLatLng([a.lat, a.lon]);
+            trails[a.id].addLatLng([a.lat, a.lon]);
+
+            a.neighbors.forEach(n=>{
+                if(d[n]){
+                    links.push(
+                        L.polyline(
+                            [[a.lat,a.lon],[d[n].lat,d[n].lon]],
+                            {color:'#00f3ff', weight:1, opacity:0.6, dashArray:"4,6"}
+                        ).addTo(map)
+                    );
+                }
+            });
+        });
+
+        if(!centered && Object.values(d).length > 0){
+            let f = Object.values(d)[0];
+            map.setView([f.lat, f.lon], 18);
+            centered = true;
+        }
+
+    }).catch(()=>{});
+}
+
+setInterval(update, 1000);
+
+// -------- COMMAND SEND --------
+function send(cmd){
+    fetch("/cmd/" + cmd);
+}
+</script>
+
+</body>
+</html>
