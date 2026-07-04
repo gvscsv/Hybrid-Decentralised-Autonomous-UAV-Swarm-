@@ -1,5 +1,14 @@
 # Hybrid-Decentralised Autonomous UAV Swarm
 
+<p align="center">
+  <img src="images/swarm_demo.png" alt="Three autonomous drones flying in decentralized swarm formation" width="900"/>
+</p>
+
+<p align="center">
+  <b>Three Raspberry Pi + Pixhawk based drones operating in decentralized autonomous swarm mode.</b>
+</p>
+
+---
 A decentralized autonomous drone swarm built using **Raspberry Pi 3B companion computers** and **Pixhawk (ArduPilot)** flight controllers.
 
 Each drone operates independently while communicating through a distributed network, enabling autonomous swarm coordination without relying on a centralized controller.
